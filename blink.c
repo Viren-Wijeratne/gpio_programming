@@ -50,7 +50,7 @@ int main(void){
 		goto cleanup;
 	}
 	
-	//Configure GPIO 17 as an output
+	//Configure GPIO 17 as an output	       GPIOD_LINE_DIRECTION_INPUT is also an option
 	if(gpiod_line_settings_set_direction(settings, GPIOD_LINE_DIRECTION_OUTPUT) < 0){
 		perror("set direction");
 		goto cleanup;
@@ -85,7 +85,7 @@ int main(void){
 
 	gpiod_request_config_set_consumer(req_cfg, "pi-zero-led");
 
-	//Request ownership of GPIO17
+	//Request ownership of GPIO17 from the kernel, if another process owns the requested line, this request fails 
 	request = gpiod_chip_request_lines(chip, req_cfg, line_cfg);
 
 	if(!request){
@@ -99,7 +99,7 @@ int main(void){
 
 	while(running){
 	
-		//LED On
+		//LED On					Turning the GPIO pin HIGH(3.3.v)
 		if(gpiod_line_request_set_value(request, offset, GPIOD_LINE_VALUE_ACTIVE) < 0){
 			perror("set ACTIVE");
 			goto cleanup;
@@ -114,7 +114,7 @@ int main(void){
 			break;
 		}
 
-		//LED Off
+		//LED Off					  Turning the GPIO pin LOW
 		if(gpiod_line_request_set_value(request, offset, GPIOD_LINE_VALUE_INACTIVE) < 0){
 			perror("set INACTIVE");
 			goto cleanup;
@@ -160,4 +160,26 @@ if(chip){
 return status;
 }
 
-//Compiled using: gcc -std=c11 -Wall -Wextra -Wpedantic blink.c -o blink $(pkg-config --cflags --libs libgpiod)
+/*
+- Compiled using: gcc -std=c11 -Wall -Wextra -Wpedantic blink.c -o blink $(pkg-config --cflags --libs libgpiod)
+
+Controlling the GPIO involves several steps:
++--------------------+----------------------------------------------------------+
+|       Object       |				Purpose				|
++--------------------+----------------------------------------------------------+
+|gpiod_chip          |Represent a GPIO controller				|
+|gpiod_line_settings |Describes direction, bias, edge detection and output value|
+|gpiod_line_config   |Associates settings with specific GPIO offsets   		|
+|gpiod_request_config|Describes the request, including its consumer name	|
+|gpiod_line_request  |Represents ownership of the requested GPIO lines		|
++--------------------+----------------------------------------------------------+
+- We should release the used resources/objects before terminating the program 
+- Identify the available GPIO chips: gpiodetect
+- Inspect the GPIO lines: gpioinfo
+
+- It should be stated the limitation of the gpiod library. Capabilities include,
+	- Digital GPIO Input
+	- Digital GPIO Output
+	- Button detection and interrupts
+
+*/
